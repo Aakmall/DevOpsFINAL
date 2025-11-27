@@ -40,7 +40,7 @@ export default function Dashboard() {
     <div className="p-8 space-y-6 animate-fade-in">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-foreground">Dashboard Dolphin</h1>
+          <h1 className="text-4xl font-bold text-foreground">Dashboard Dolphin Farmasi</h1>
           <p className="text-muted-foreground mt-2">Welcome back! Here's your pharmacy Dashboard overview</p>
         </div>
       </div>
