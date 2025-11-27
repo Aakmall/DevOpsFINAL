@@ -41,7 +41,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold text-foreground">Dashboard Dolphin</h1>
-          <p className="text-muted-foreground mt-2">Welcome back! Here's your pharmacy overview</p>
+          <p className="text-muted-foreground mt-2">Welcome back! Here's your pharmacy Dashboard overview</p>
         </div>
       </div>
 
