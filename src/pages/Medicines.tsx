@@ -39,7 +39,10 @@ export default function Medicines() {
       if (categoriesRes.error) throw categoriesRes.error;
       if (suppliersRes.error) throw suppliersRes.error;
 
-      setMedicines(medicinesRes.data || []);
+      setMedicines((medicinesRes.data || []).map((m: any) => ({
+        ...m,
+        expiryDate: m.expirydate || m.expiryDate // Handle both cases just in case
+      })));
       setCategories(categoriesRes.data || []);
       setSuppliers(suppliersRes.data || []);
     } catch (error: any) {
@@ -62,11 +65,21 @@ export default function Medicines() {
 
   const handleSave = async (medicineData: any) => {
     try {
+      // Map frontend camelCase to DB snake_case/lowercase
+      const dbData = {
+        name: medicineData.name,
+        category: medicineData.category,
+        stock: medicineData.stock,
+        price: medicineData.price,
+        expirydate: medicineData.expiryDate, // Map expiryDate -> expirydate
+        supplier: medicineData.supplier
+      };
+
       if (medicineData.id) {
         // Update existing
         const { error } = await supabase
           .from('medicines')
-          .update(medicineData)
+          .update(dbData)
           .eq('id', medicineData.id);
         
         if (error) throw error;
@@ -75,17 +88,21 @@ export default function Medicines() {
         toast({ title: "Medicine Updated", description: `${medicineData.name} has been updated.` });
       } else {
         // Add new
-        // Remove ID if it's empty or let Supabase handle it if it's UUID
-        const { id, ...newMedicineData } = medicineData;
         const { data, error } = await supabase
           .from('medicines')
-          .insert([newMedicineData])
+          .insert([dbData])
           .select()
           .single();
           
         if (error) throw error;
         
-        setMedicines([...medicines, data]);
+        // Map back DB response to frontend model
+        const newMedicine = {
+          ...data,
+          expiryDate: data.expirydate // Map back expirydate -> expiryDate
+        };
+        
+        setMedicines([...medicines, newMedicine]);
         toast({ title: "Medicine Added", description: `${medicineData.name} has been added.` });
       }
     } catch (error: any) {
