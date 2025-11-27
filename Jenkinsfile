@@ -39,8 +39,8 @@ pipeline {
                 // sh 'echo "VITE_SUPABASE_URL=isi_url_disini" > .env'
                 // sh 'echo "VITE_SUPABASE_ANON_KEY=isi_key_disini" > .env'
                 
-                // Proses build menjadi folder 'dist'
-                sh 'npm run build'
+                // Proses build menjadi folder 'dist' dengan memory optimization
+                sh 'NODE_OPTIONS="--max-old-space-size=2048" npm run build'
             }
         }
 
