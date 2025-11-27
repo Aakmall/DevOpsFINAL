@@ -11,8 +11,8 @@ pipeline {
         SERVER_IP = '103.191.92.246'
         // Ganti dengan username di server (misal: root atau ubuntu)
         SERVER_USER = 'root'
-        // Ganti dengan folder tujuan di server tempat website akan disimpan
-        DEPLOY_DIR = '/var/www/aposmart'
+        // Folder tujuan: /var/www/html (Root folder untuk dolphingroup.site)
+        DEPLOY_DIR = '/var/www/html'
         // ID Credential yang Anda buat di Jenkins (lihat panduan LANGKAH_SELANJUTNYA.md)
         SSH_CREDENTIAL_ID = 'vps-ssh-key'
     }
