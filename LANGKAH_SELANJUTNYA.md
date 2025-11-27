@@ -41,7 +41,7 @@ server {
     listen 80;
     server_name 103.191.92.246; # Atau nama domain Anda jika sudah ada
 
-    root /var/www/aposmart;
+    root /var/www/html;
     index index.html;
 
     location / {
