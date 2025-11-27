@@ -1,149 +1,152 @@
-# 🚀 Langkah Selanjutnya untuk Menyelesaikan Final Project
+# 🚀 Langkah Selanjutnya: Setup Jenkins & Deployment
 
-Dokumen ini berisi panduan praktis langkah demi langkah yang harus Anda lakukan **SEKARANG** untuk menyelesaikan proyek ApoSmart sesuai dengan kriteria penilaian dosen.
+Dokumen ini adalah panduan lanjutan khusus untuk mengatur **Jenkins** agar bisa melakukan deployment otomatis ke server Anda (`103.191.92.246`).
 
 ---
 
-## 1. Konfigurasi Database (Supabase)
+## 1. Persiapan di Server (VPS)
 
-Karena kode aplikasi sudah diubah untuk menggunakan Supabase, Anda harus membuat tabel-tabel yang diperlukan di database Supabase Anda.
+Login ke server Anda via terminal/PuTTY:
+```bash
+ssh root@103.191.92.246
+```
 
-**Langkah-langkah:**
-1.  Buka [Supabase Dashboard](https://supabase.com/dashboard).
-2.  Buat Project baru.
-3.  Masuk ke menu **SQL Editor**.
-4.  Copy dan Paste kode SQL berikut, lalu klik **Run**:
+### A. Install Nginx (Web Server)
+Jika belum terinstall, jalankan:
+```bash
+sudo apt update
+sudo apt install nginx -y
+```
+Pastikan Nginx berjalan:
+```bash
+systemctl status nginx
+```
 
-```sql
--- 1. Buat Tabel Categories
-CREATE TABLE categories (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  color TEXT DEFAULT '#3B82F6',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+### B. Siapkan Folder Tujuan
+Buat folder untuk menyimpan file website ApoSmart:
+```bash
+mkdir -p /var/www/aposmart
+# Berikan izin akses (opsional, sesuaikan dengan user)
+chmod -R 755 /var/www/aposmart
+```
 
--- 2. Buat Tabel Suppliers
-CREATE TABLE suppliers (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  contact TEXT,
-  email TEXT,
-  address TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+### C. Konfigurasi Nginx
+Buat file konfigurasi server block:
+```bash
+nano /etc/nginx/sites-available/aposmart
+```
+Isi dengan konfigurasi berikut:
+```nginx
+server {
+    listen 80;
+    server_name 103.191.92.246; # Atau nama domain Anda jika sudah ada
 
--- 3. Buat Tabel Medicines
-CREATE TABLE medicines (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  category TEXT, -- Menyimpan nama kategori untuk simplifikasi
-  stock INTEGER DEFAULT 0,
-  price INTEGER DEFAULT 0,
-  expiryDate DATE,
-  supplier TEXT, -- Menyimpan nama supplier untuk simplifikasi
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+    root /var/www/aposmart;
+    index index.html;
 
--- 4. Masukkan Data Dummy (Opsional, agar tidak kosong)
-INSERT INTO categories (name, color) VALUES 
-('Pain Relief', '#3B82F6'),
-('Antibiotic', '#10B981'),
-('Supplement', '#F59E0B');
-
-INSERT INTO suppliers (name, contact, email, address) VALUES 
-('PT Pharma Indo', '08123456789', 'contact@pharmaindo.com', 'Jakarta'),
-('PT Medika Jaya', '08198765432', 'info@medikajaya.com', 'Bandung');
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+Simpan (Ctrl+X, Y, Enter). Lalu aktifkan:
+```bash
+ln -s /etc/nginx/sites-available/aposmart /etc/nginx/sites-enabled/
+rm /etc/nginx/sites-enabled/default # Hapus default config jika perlu
+nginx -t # Cek error
+systemctl restart nginx
 ```
 
 ---
 
-## 2. Koneksi Aplikasi ke Database
+## 2. Persiapan SSH Keys (Agar Jenkins Bisa Masuk ke Server)
 
-Agar aplikasi di laptop/server Anda bisa terhubung ke Supabase:
+Agar Jenkins bisa mengirim file ke server tanpa password setiap saat, kita gunakan **SSH Key**.
 
-1.  Di Supabase Dashboard, masuk ke **Project Settings** -> **API**.
-2.  Salin **Project URL** dan **anon public key**.
-3.  Di folder proyek Anda, rename file `.env.example` menjadi `.env`.
-4.  Isi file `.env` dengan data yang Anda salin:
+### A. Generate SSH Key (Di Server Jenkins)
+Jika Jenkins diinstall di server yang sama, Anda bisa skip generate dan langsung pakai key user jenkins. Tapi asumsi standar, kita buat key baru.
+Di terminal server:
+```bash
+# 1. Generate key baru (jangan pakai passphrase agar otomatis)
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/jenkins_key -N ""
 
-```env
-VITE_SUPABASE_URL=https://your-project-url.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+# 2. Lihat Private Key (Ini yang akan dimasukkan ke Jenkins)
+cat ~/.ssh/jenkins_key
+# COPY SEMUA ISI DARI -----BEGIN OPENSSH PRIVATE KEY----- SAMPAI AKHIR
+
+# 3. Masukkan Public Key ke Authorized Keys (Agar key tadi valid untuk login)
+cat ~/.ssh/jenkins_key.pub >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
 ```
 
 ---
 
-## 3. Upload ke GitHub (Source Code Management)
+## 3. Konfigurasi di Dashboard Jenkins
 
-Anda perlu meng-upload kode ini ke repository GitHub Anda.
+Buka Jenkins di browser: `http://103.191.92.246:9090/`
 
-1.  Buka terminal di folder proyek.
-2.  Jalankan perintah berikut:
-    ```bash
-    git init
-    git add .
-    git commit -m "Final Project: ApoSmart Complete Features"
-    git branch -M main
-    git remote add origin https://github.com/USERNAME_ANDA/aposmart.git
-    git push -u origin main
-    ```
-    *(Ganti `USERNAME_ANDA` dengan username GitHub Anda)*
+### A. Install Plugin yang Dibutuhkan
+1.  Masuk ke **Manage Jenkins** -> **Plugins** -> **Available Plugins**.
+2.  Cari dan Install:
+    *   **NodeJS Plugin** (untuk build npm)
+    *   **SSH Agent Plugin** (untuk deploy via SSH)
+    *   **GitHub Integration** (jika belum ada)
 
----
+### B. Konfigurasi NodeJS
+1.  Masuk ke **Manage Jenkins** -> **Tools**.
+2.  Scroll ke **NodeJS**.
+3.  Klik **Add NodeJS**.
+4.  Name: `NodeJS` (Harus sama persis dengan yang di `Jenkinsfile`).
+5.  Version: Pilih versi terbaru LTS (misal NodeJS 20.x).
+6.  Klik **Save**.
 
-## 4. Setup Server & Jenkins (DevOps)
-
-Bagian ini dilakukan di **VPS / Server Ubuntu** Anda.
-
-### A. Persiapan Server
-1.  **Install Nginx & Node.js**:
-    ```bash
-    sudo apt update
-    sudo apt install nginx nodejs npm
-    ```
-2.  **Install Jenkins**:
-    Ikuti panduan resmi instalasi Jenkins untuk Ubuntu.
-3.  **Install Certbot (SSL)**:
-    ```bash
-    sudo apt install certbot python3-certbot-nginx
-    ```
-
-### B. Konfigurasi Jenkins Pipeline
-1.  Buka Dashboard Jenkins (`http://IP_SERVER:8080`).
-2.  Buat **New Item** -> **Pipeline**.
-3.  Di bagian **Pipeline Script**, gunakan script dari `REPORT.md` (Bagian 4).
-4.  Pastikan Jenkins memiliki akses ke server (SSH keys) jika melakukan deployment via `rsync` atau copy file.
-
-### C. Konfigurasi Domain & SSL
-1.  Beli domain di Niagahoster.
-2.  Arahkan **A Record** domain ke IP Public VPS Anda.
-3.  Di server, jalankan Certbot untuk mengaktifkan HTTPS:
-    ```bash
-    sudo certbot --nginx -d nama-domain-anda.com
-    ```
+### C. Masukkan Credential SSH Key
+1.  Masuk ke **Manage Jenkins** -> **Credentials**.
+2.  Klik **System** -> **Global credentials (unrestricted)**.
+3.  Klik **+ Add Credentials**.
+4.  Isi form:
+    *   **Kind**: SSH Username with private key
+    *   **ID**: `vps-ssh-key` (Harus sama dengan `SSH_CREDENTIAL_ID` di `Jenkinsfile`)
+    *   **Username**: `root` (atau user server Anda)
+    *   **Private Key**: Pilih **Enter directly**, lalu **Add**. Paste Private Key yang tadi Anda copy (dari langkah 2.A.2).
+    *   **Passphrase**: Kosongkan.
+5.  Klik **Create**.
 
 ---
 
-## 5. Dokumentasi & Laporan
+## 4. Buat Pipeline Job
 
-Gunakan file `REPORT.md` yang sudah saya buatkan sebagai bahan dasar laporan Anda.
-1.  **Ambil Screenshot**:
-    *   Halaman Dashboard.
-    *   Halaman Obat (tunjukkan fitur Expiry Alert).
-    *   Halaman Tambah Obat.
-    *   Tampilan Jenkins (Pipeline sukses).
-    *   Tampilan Supabase (Tabel data).
-2.  **Masukkan ke Laporan**: Tempel screenshot tersebut ke dalam dokumen laporan (Word/PDF) yang akan diserahkan ke dosen.
+1.  Di Dashboard Jenkins, klik **New Item**.
+2.  Masukkan nama: `ApoSmart-Deploy`.
+3.  Pilih **Pipeline**, klik **OK**.
+4.  Scroll ke bagian **Pipeline**.
+5.  **Definition**: Pilih `Pipeline script from SCM`.
+6.  **SCM**: Pilih `Git`.
+7.  **Repository URL**: Masukkan URL GitHub Anda (misal `https://github.com/USERNAME/aposmart.git`).
+8.  **Branch Specifier**: `*/main`.
+9.  **Script Path**: `Jenkinsfile` (biarkan default).
+10. Klik **Save**.
 
 ---
 
-## Checklist Akhir ✅
+## 5. Jalankan & Test
 
-- [ ] Website bisa dibuka di browser (Localhost/Public IP).
-- [ ] Bisa Tambah, Edit, Hapus Obat (CRUD).
-- [ ] Data tersimpan di Supabase (Cek di dashboard Supabase).
-- [ ] Kode ada di GitHub.
-- [ ] Laporan `REPORT.md` sudah dilengkapi screenshot.
+1.  Klik **Build Now** di menu kiri.
+2.  Lihat progress di **Build History** (klik nomor build #1).
+3.  Klik **Console Output** untuk melihat log.
+4.  Jika sukses, buka browser dan akses IP Server Anda (`http://103.191.92.246`). Website ApoSmart harusnya muncul!
 
-**Selamat! Proyek Anda siap didemokan.**
+---
+
+## 6. Setup Database & Environment (PENTING)
+
+Di `Jenkinsfile` saat ini, proses build mungkin gagal jika tidak ada `.env` untuk Supabase.
+Cara mengatasinya:
+1.  Di server, buat file `.env` manual di folder workspace Jenkins (ribet).
+2.  **ATAU (Disarankan)**: Edit `Jenkinsfile` di GitHub Anda, uncomment bagian pembuatan file `.env` di stage 'Build Application' dan isi dengan URL & Key Supabase Anda yang asli.
+
+```groovy
+sh 'echo "VITE_SUPABASE_URL=https://blabla.supabase.co" > .env'
+sh 'echo "VITE_SUPABASE_ANON_KEY=eyJh..." > .env'
+```
+*(Jangan lupa commit & push perubahan Jenkinsfile ini ke GitHub)*
