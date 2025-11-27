@@ -48,13 +48,24 @@ pipeline {
             steps {
                 // Menggunakan plugin SSH Agent untuk connect ke server tanpa password manual
                 sshagent(credentials: [SSH_CREDENTIAL_ID]) {
-                    // 1. Buat folder tujuan jika belum ada
-                    sh "ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} 'mkdir -p ${DEPLOY_DIR}'"
+                    // 1. Update folder DevOpsFINAL di server dengan code terbaru
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} '
+                            cd /var/www/html/DevOpsFINAL && 
+                            git pull origin main
+                        '
+                    """
                     
-                    // 2. Copy file hasil build (folder dist) ke server menggunakan rsync
-                    // Flag -avz: Archive mode, Verbose, Compress
-                    // --delete: Hapus file di server yang tidak ada di source (agar sinkron)
-                    sh "rsync -avz --delete -e 'ssh -o StrictHostKeyChecking=no' dist/ ${SERVER_USER}@${SERVER_IP}:${DEPLOY_DIR}"
+                    // 2. Copy file hasil build (folder dist) dari Jenkins ke folder DevOpsFINAL di server
+                    sh "rsync -avz --delete -e 'ssh -o StrictHostKeyChecking=no' dist/ ${SERVER_USER}@${SERVER_IP}:/var/www/html/DevOpsFINAL/dist/"
+                    
+                    // 3. Copy isi folder dist ke /var/www/html (root website)
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} '
+                            cd /var/www/html/DevOpsFINAL &&
+                            cp -r dist/* ${DEPLOY_DIR}/
+                        '
+                    """
                 }
             }
         }
