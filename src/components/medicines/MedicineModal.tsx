@@ -27,9 +27,10 @@ interface MedicineModalProps {
   medicine?: Medicine | null;
   categories: Array<{ id: string; name: string }>;
   suppliers: Array<{ id: string; name: string }>;
+  savingDisabled?: boolean;
 }
 
-export const MedicineModal = ({ open, onClose, onSave, medicine, categories, suppliers }: MedicineModalProps) => {
+export const MedicineModal = ({ open, onClose, onSave, medicine, categories, suppliers, savingDisabled = false }: MedicineModalProps) => {
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -63,6 +64,7 @@ export const MedicineModal = ({ open, onClose, onSave, medicine, categories, sup
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingDisabled) return;
     onSave({
       id: medicine?.id,
       name: formData.name,
@@ -91,7 +93,7 @@ export const MedicineModal = ({ open, onClose, onSave, medicine, categories, sup
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Paracetamol 500mg"
+                placeholder="Nama dan dosis obat"
                 required
                 className="mt-1"
               />
@@ -210,7 +212,7 @@ export const MedicineModal = ({ open, onClose, onSave, medicine, categories, sup
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+            <Button type="submit" disabled={savingDisabled} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
               {medicine ? "Update Medicine" : "Add Medicine"}
             </Button>
           </DialogFooter>

@@ -15,13 +15,14 @@ interface Medicine {
 }
 
 interface MedicineTableProps {
+  readOnly?: boolean;
   medicines: Medicine[];
   onEdit: (medicine: Medicine) => void;
   onDelete: (id: string) => void;
   onQuickAdd: (medicine: Medicine) => void;
 }
 
-export const MedicineTable = ({ medicines, onEdit, onDelete, onQuickAdd }: MedicineTableProps) => {
+export const MedicineTable = ({ medicines, onEdit, onDelete, onQuickAdd, readOnly = false }: MedicineTableProps) => {
   const getStockStatus = (stock: number) => {
     if (stock === 0) return { label: "Out of Stock", variant: "destructive" as const };
     if (stock < 10) return { label: "Low Stock", variant: "warning" as const };
@@ -43,6 +44,7 @@ export const MedicineTable = ({ medicines, onEdit, onDelete, onQuickAdd }: Medic
           </TableRow>
         </TableHeader>
         <TableBody>
+          {medicines.length === 0 && <TableRow><TableCell colSpan={7} className="h-40 text-center text-muted-foreground">Belum ada obat yang ditampilkan. Tambahkan obat atau ubah pencarian Anda.</TableCell></TableRow>}
           {medicines.map((medicine) => {
             const stockStatus = getStockStatus(medicine.stock);
             return (
@@ -76,13 +78,14 @@ export const MedicineTable = ({ medicines, onEdit, onDelete, onQuickAdd }: Medic
                     })()}
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground">{medicine.supplier}</TableCell>
+                <TableCell className="text-muted-foreground">{medicine.supplier || "—"}</TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-2">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => onQuickAdd(medicine)}
+                      disabled={readOnly}
                       className="h-8 w-8 p-0 hover:bg-success/10 hover:text-success"
                     >
                       <Plus className="h-4 w-4" />
@@ -99,6 +102,7 @@ export const MedicineTable = ({ medicines, onEdit, onDelete, onQuickAdd }: Medic
                       size="sm"
                       variant="ghost"
                       onClick={() => onDelete(medicine.id)}
+                      disabled={readOnly}
                       className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />

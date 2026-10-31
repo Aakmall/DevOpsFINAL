@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import { EmptyState } from "@/components/EmptyState";
+import { isLocalPreview } from "@/lib/preview";
+import { Users } from "lucide-react";
 
 interface Supplier {
   id: string;
@@ -38,6 +41,7 @@ export default function Suppliers() {
   }, []);
 
   const fetchData = async () => {
+    if (isLocalPreview) { setLoading(false); return; }
     setLoading(true);
     try {
       const [suppliersRes, medicinesRes] = await Promise.all([
@@ -76,6 +80,7 @@ export default function Suppliers() {
   );
 
   const handleSave = async () => {
+    if (isLocalPreview) return;
     try {
       if (editingSupplier) {
         const { error } = await supabase
@@ -128,6 +133,7 @@ export default function Suppliers() {
   };
 
   const handleDelete = async (id: string) => {
+    if (isLocalPreview) return;
     try {
       const { error } = await supabase
         .from('suppliers')
@@ -186,6 +192,7 @@ export default function Suppliers() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredSuppliers.length === 0 && <Card className="col-span-full"><EmptyState icon={Users} title="Belum ada pemasok yang ditampilkan" description="Tambahkan pemasok pertama atau ubah pencarian Anda." /></Card>}
         {filteredSuppliers.map((supplier) => (
           <Card
             key={supplier.id}
@@ -288,7 +295,7 @@ export default function Suppliers() {
             <Button variant="outline" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+            <Button onClick={handleSave} disabled={isLocalPreview} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
               {editingSupplier ? "Update" : "Add"} Supplier
             </Button>
           </DialogFooter>

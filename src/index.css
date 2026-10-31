@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+.auth-story { min-height: 100svh; }
+.auth-orb { position: absolute; border-radius: 50%; pointer-events: none; }
+.auth-orb-one { width: 38rem; height: 38rem; right: -24rem; top: -12rem; background: radial-gradient(circle, hsl(163 65% 48% / .24), transparent 70%); }
+.auth-orb-two { width: 42rem; height: 42rem; left: -22rem; bottom: -26rem; border: 1px solid hsl(163 65% 70% / .14); box-shadow: 0 0 0 4rem hsl(163 65% 70% / .025), 0 0 0 8rem hsl(163 65% 70% / .025); }
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

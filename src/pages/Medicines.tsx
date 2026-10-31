@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { isLocalPreview } from "@/lib/preview";
+import { previewMedicines, previewCategories } from "@/lib/preview-data";
 
 export default function Medicines() {
   const [medicines, setMedicines] = useState<any[]>([]);
@@ -27,6 +29,13 @@ export default function Medicines() {
   }, []);
 
   const fetchData = async () => {
+    if (isLocalPreview) {
+      setMedicines(previewMedicines.map(medicine => ({ ...medicine, expiryDate: medicine.expirydate, supplier: "" })));
+      setCategories(previewCategories);
+      setSuppliers([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [medicinesRes, categoriesRes, suppliersRes] = await Promise.all([
@@ -64,6 +73,7 @@ export default function Medicines() {
   );
 
   const handleSave = async (medicineData: any) => {
+    if (isLocalPreview) return;
     try {
       // Map frontend camelCase to DB snake_case/lowercase
       const dbData = {
@@ -121,6 +131,7 @@ export default function Medicines() {
   };
 
   const handleDelete = async (id: string) => {
+    if (isLocalPreview) return;
     try {
       const { error } = await supabase
         .from('medicines')
@@ -151,6 +162,7 @@ export default function Medicines() {
   };
 
   const handleQuickAddSubmit = async (quantity: number) => {
+    if (isLocalPreview) return;
     if (quickAddModal.medicine) {
       try {
         const newStock = quickAddModal.medicine.stock + quantity;
@@ -223,6 +235,7 @@ export default function Medicines() {
       </div>
 
       <MedicineTable
+        readOnly={isLocalPreview}
         medicines={filteredMedicines}
         onEdit={handleEdit}
         onDelete={handleDelete}
@@ -239,6 +252,7 @@ export default function Medicines() {
         medicine={editingMedicine}
         categories={categories}
         suppliers={suppliers}
+        savingDisabled={isLocalPreview}
       />
 
       <QuickAddModal

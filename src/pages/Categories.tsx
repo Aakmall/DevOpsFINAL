@@ -8,6 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { EmptyState } from "@/components/EmptyState";
+import { isLocalPreview } from "@/lib/preview";
+import { previewCategories } from "@/lib/preview-data";
+import { Package } from "lucide-react";
 
 interface Category {
   id: string;
@@ -30,6 +34,7 @@ export default function Categories() {
   }, []);
 
   const fetchData = async () => {
+    if (isLocalPreview) { setCategories(previewCategories); setLoading(false); return; }
     setLoading(true);
     try {
       const [categoriesRes, medicinesRes] = await Promise.all([
@@ -67,6 +72,7 @@ export default function Categories() {
   );
 
   const handleSave = async () => {
+    if (isLocalPreview) return;
     try {
       if (editingCategory) {
         const { error } = await supabase
@@ -114,6 +120,7 @@ export default function Categories() {
   };
 
   const handleDelete = async (id: string) => {
+    if (isLocalPreview) return;
     try {
       const { error } = await supabase
         .from('categories')
@@ -172,6 +179,7 @@ export default function Categories() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredCategories.length === 0 && <Card className="col-span-full"><EmptyState icon={Package} title="Belum ada kategori yang ditampilkan" description="Tambahkan kategori pertama atau ubah pencarian Anda." /></Card>}
         {filteredCategories.map((category) => (
           <Card
             key={category.id}
@@ -200,6 +208,7 @@ export default function Categories() {
                   size="sm"
                   variant="ghost"
                   onClick={() => handleDelete(category.id)}
+                  disabled={isLocalPreview}
                   className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -253,7 +262,7 @@ export default function Categories() {
             <Button variant="outline" onClick={() => setModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+            <Button onClick={handleSave} disabled={isLocalPreview} className="bg-gradient-to-r from-primary to-secondary hover:opacity-90">
               {editingCategory ? "Update" : "Add"} Category
             </Button>
           </DialogFooter>
